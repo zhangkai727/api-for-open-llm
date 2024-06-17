@@ -1,0 +1,12 @@
+openai
+langchain
+langchain_openai
+python-dotenv==1.0.0
+loguru
+sqlalchemy~=1.4.46
+spacy
+lancedb
+pymysql
+streamlit
+google-search-results
+jupyter_client
