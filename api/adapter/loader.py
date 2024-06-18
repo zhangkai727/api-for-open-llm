@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+<<<<<<< HEAD
 from typing import (                    #从 Python 的 typing 模块中导入了几个类型和工具
     TYPE_CHECKING,                      #一个常量，通常用于在类型检查期间进行条件导入。它在运行时始终为 False，但在静态类型检查工具（如 MyPy）中为 True
     Optional,                           #一个泛型类型，用于表示可以是某种类型或者是 None 的值
@@ -33,11 +34,47 @@ def load_model_and_tokenizer(           #这段代码定义了一个名为 load_
     rope_scaling: Optional[str] = None,     #一个可选的字符串参数，用于指定 ROPE（Rotary Position Embedding）缩放的方式
     flash_attn: Optional[bool] = False,     #一个可选的布尔参数，指示是否使用闪存注意力（flash attention）机制，这是一种优化的注意力机制，可以加速推理过程。
 ) -> Tuple["PreTrainedModel", "PreTrainedTokenizer"]:       #该函数返回一个包含预训练模型和标记器的元组。返回类型是通过字符串形式注解的，以避免在类型检查时导入实际类型。
+=======
+from typing import (
+    TYPE_CHECKING,
+    Optional,
+    Tuple,
+    Any,
+)
+
+from transformers import (
+    AutoConfig,
+    AutoModelForCausalLM,
+    AutoTokenizer,
+)
+
+from .patcher import (
+    patch_config,
+    patch_tokenizer,
+    patch_model,
+)
+
+if TYPE_CHECKING:
+    from transformers import PreTrainedModel, PreTrainedTokenizer
+
+
+def load_model_and_tokenizer(
+    model_name_or_path: str,
+    use_fast_tokenizer: Optional[bool] = False,
+    dtype: Optional[str] = None,
+    device_map: Optional[Any] = None,
+    load_in_8bit: Optional[bool] = False,
+    load_in_4bit: Optional[bool] = False,
+    rope_scaling: Optional[str] = None,
+    flash_attn: Optional[bool] = False,
+) -> Tuple["PreTrainedModel", "PreTrainedTokenizer"]:
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
     r"""
     Loads pretrained model and tokenizer.
 
     Support inference.
     """
+<<<<<<< HEAD
     config_kwargs = {"trust_remote_code": True}     #这是一个配置参数字典，用于指定在加载模型配置时是否信任远程代码。设置 trust_remote_code 为 True 表示信任从 Hugging Face 模型库中下载的模型配置代码。这个选项在加载自定义配置或代码时非常有用。
 
     tokenizer = AutoTokenizer.from_pretrained(      #AutoTokenizer 是 Hugging Face transformers 库中的一个类，它提供了加载各种预训练标记器的功能。
@@ -72,3 +109,39 @@ def load_model_and_tokenizer(           #这段代码定义了一个名为 load_
     model.eval()      #在 PyTorch 中，调用 eval() 方法会将模型设置为评估模式，
 
     return model, tokenizer      #这行代码返回修补后的模型对象 model 和相应的分词器对象 tokenizer
+=======
+    config_kwargs = {"trust_remote_code": True}
+
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_name_or_path,
+        use_fast=use_fast_tokenizer,
+        trust_remote_code=True,
+    )
+    patch_tokenizer(tokenizer)
+
+    config = AutoConfig.from_pretrained(model_name_or_path, **config_kwargs)
+    patch_config(
+        config,
+        config_kwargs,
+        dtype,
+        rope_scaling=rope_scaling,
+        flash_attn=flash_attn,
+        load_in_4bit=load_in_4bit,
+        load_in_8bit=load_in_8bit,
+    )
+
+    if device_map:
+        config_kwargs["device_map"] = device_map
+
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name_or_path,
+        config=config,
+        low_cpu_mem_usage=True,
+        **config_kwargs
+    )
+
+    patch_model(model)
+    model.eval()
+
+    return model, tokenizer
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d

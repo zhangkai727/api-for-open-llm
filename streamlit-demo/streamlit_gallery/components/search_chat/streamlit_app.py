@@ -12,15 +12,21 @@ PROMPT_TEMPLATE = """<指令>根据已知信息，简洁和专业的来回答问
 
 
 def main():
+<<<<<<< HEAD
     # 设置网页的标题
     st.title("💬 Search Chatbot")
 
     # 初始化 OpenAI 客户端，设置 API 密钥和基础 URL
+=======
+    st.title("💬 Search Chatbot")
+
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
     client = OpenAI(
         api_key=os.getenv("API_KEY"),
         base_url=os.getenv("CHAT_API_BASE"),
     )
 
+<<<<<<< HEAD
     # 初始化 SerpAPIWrapper 实例，用于执行搜索
     search = SerpAPIWrapper()
 
@@ -73,10 +79,48 @@ def main():
                         "content": PROMPT_TEMPLATE.format(query=prompt, context=result)
                     }
                 ],
+=======
+    search = SerpAPIWrapper()
+
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+            if message["role"] == "assistant" and message["reference"] is not None:
+                st.markdown("### Reference Search Results")
+                st.json(message["reference"], expanded=False)
+
+    if prompt := st.chat_input("What is up?"):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        with st.chat_message("assistant"):
+            result = search.run(prompt)
+            message_placeholder = st.empty()
+            full_response = ""
+            for response in client.chat.completions.create(
+                model="baichuan",
+                messages=[
+                     {
+                         "role": m["role"],
+                         "content": m["content"]
+                     }
+                     for m in st.session_state.messages[:-1]
+                 ] + [
+                     {
+                         "role": "user",
+                         "content": PROMPT_TEMPLATE.format(query=prompt, context=result)
+                     }
+                 ],
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
                 max_tokens=st.session_state.get("max_tokens", 512),
                 temperature=st.session_state.get("temperature", 0.9),
                 stream=True,
             ):
+<<<<<<< HEAD
                 # 累积 OpenAI API 返回的内容片段
                 full_response += response.choices[0].delta.content or ""
                 # 动态显示累积的内容
@@ -90,6 +134,16 @@ def main():
             st.json({"search_result": result}, expanded=False)
 
         # 将助手的消息及参考信息添加到会话状态中
+=======
+                full_response += response.choices[0].delta.content or ""
+
+                message_placeholder.markdown(full_response + "▌")
+            message_placeholder.markdown(full_response)
+
+            st.markdown("### Reference Search Results")
+            st.json({"search_result": result}, expanded=False)
+
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
         st.session_state.messages.append(
             {
                 "role": "assistant",
@@ -98,7 +152,13 @@ def main():
             }
         )
 
+<<<<<<< HEAD
 # 如果脚本作为主程序运行，则调用 main 函数
 if __name__ == "__main__":
     main()
 
+=======
+
+if __name__ == "__main__":
+    main()
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d

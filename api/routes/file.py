@@ -28,6 +28,7 @@ file_router = APIRouter(prefix="/files")
 
 class File2DocsRequest(BaseModel):
     file_id: Optional[str] = None
+<<<<<<< HEAD
     # 文件ID，初始值为None
 
     url: Optional[str] = None
@@ -47,10 +48,19 @@ class File2DocsRequest(BaseModel):
     url_parser_prefix: Optional[str] = "https://r.jina.ai/"
     # URL解析器前缀，默认为"https://r.jina.ai/"
 
+=======
+    url: Optional[str] = None
+    zh_title_enhance: Optional[bool] = False
+    chunk_size: Optional[int] = 250
+    chunk_overlap: Optional[int] = 50
+    text_splitter_name: Optional[str] = "ChineseRecursiveTextSplitter"
+    url_parser_prefix: Optional[str] = "https://r.jina.ai/"
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
 
 
 class File2DocsResponse(BaseModel):
     id: str
+<<<<<<< HEAD
     # 文档响应的唯一标识符，类型为字符串
 
     object: str = "docs"
@@ -59,10 +69,15 @@ class File2DocsResponse(BaseModel):
     docs: List[Any]
     # 文档列表，类型为任意类型的列表
 
+=======
+    object: str = "docs"
+    docs: List[Any]
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
 
 
 @file_router.post("", response_model=FileObject)
 async def upload_file(file: UploadFile):
+<<<<<<< HEAD
     # 生成文件ID，格式为"file-" + 12位随机十六进制字符串（用下划线替换短横线）
     file_id = "file-" + str(secrets.token_hex(12)).replace("-", "_")
 
@@ -115,11 +130,47 @@ async def get_details(file_id: str):
         )
     else:
         # 如果未找到文件，则抛出HTTP 404异常
+=======
+    file_id = "file-" + str(secrets.token_hex(12)).replace("-", "_")
+    filename = file.filename
+    filepath = os.path.join(STORAGE_LOCAL_PATH, f"{file_id}_{filename}")
+    with open(filepath, "wb") as f:
+        f.write(file.file.read())
+    return FileObject(
+        id=file_id,
+        bytes=os.path.getsize(filepath),
+        created_at=int(os.path.getctime(filepath)),
+        filename=filename,
+        object="file",
+        purpose="assistants",
+        status="uploaded",
+    )
+
+
+@file_router.get("/{file_id}", response_model=FileObject)
+async def get_details(file_id: str):
+    file = _find_file(file_id)
+    if file:
+        file_id = file.split("_")[0]
+        filename = "_".join(file.split("_")[1:])
+        filepath = os.path.join(STORAGE_LOCAL_PATH, file)
+        return FileObject(
+            id=file_id,
+            bytes=os.path.getsize(filepath),
+            created_at=int(os.path.getctime(filepath)),
+            filename=filename,
+            object="file",
+            purpose="assistants",
+            status="uploaded",
+        )
+    else:
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
         raise HTTPException(status_code=404, detail=f"File {file_id} not found!")
 
 
 @file_router.get("")
 async def list_files():
+<<<<<<< HEAD
     data = []  # 初始化一个空列表，用于存储文件对象信息
     # 遍历存储路径下的所有文件
     for file in os.listdir(STORAGE_LOCAL_PATH):
@@ -144,11 +195,30 @@ async def list_files():
         )
 
     # 返回一个SyncPage对象，表示同步页的数据列表
+=======
+    data = []
+    for file in os.listdir(STORAGE_LOCAL_PATH):
+        file_id = file.split("_")[0]
+        filename = "_".join(file.split("_")[1:])
+        filepath = os.path.join(STORAGE_LOCAL_PATH, file)
+        data.append(
+            FileObject(
+                id=file_id,
+                bytes=os.path.getsize(filepath),
+                created_at=int(os.path.getctime(filepath)),
+                filename=filename,
+                object="file",
+                purpose="assistants",
+                status="uploaded",
+            )
+        )
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
     return SyncPage(data=data, object="list")
 
 
 @file_router.delete("/{file_id}", response_model=FileDeleted)
 async def delete_file(file_id: str):
+<<<<<<< HEAD
 
     deleted = False  # 初始化删除状态为False
 
@@ -170,11 +240,23 @@ async def delete_file(file_id: str):
         return FileDeleted(id=file_id, object="file", deleted=deleted)
     else:
         # 如果未找到文件，则抛出HTTP 404异常
+=======
+    deleted = False
+    filename = _find_file(file_id)
+    if filename:
+        filepath = os.path.join(STORAGE_LOCAL_PATH, filename)
+        if filepath:
+            os.remove(filepath)
+            deleted = True
+        return FileDeleted(id=file_id, object="file", deleted=deleted)
+    else:
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
         raise HTTPException(status_code=404, detail=f"File {file_id} not found!")
 
 
 @file_router.post("/split", response_model=File2DocsResponse)
 async def split_into_docs(request: File2DocsRequest):
+<<<<<<< HEAD
     """
     处理将文件拆分为文档的POST请求，并返回File2DocsResponse对象作为响应模型。
     """
@@ -226,11 +308,42 @@ async def split_into_docs(request: File2DocsRequest):
             docs = loader.load()
 
         # 设置来源信息，包括文件ID和文件名
+=======
+    if request.url is not None:
+        # https://github.com/jina-ai/reader
+        try:
+            headers = {"Accept": "application/json"}
+            res = requests.get(f"{request.url_parser_prefix}{request.url}", headers=headers).json()
+            docs = [
+                Document(page_content=res["data"]["content"])
+            ]
+            ext = ""
+            source = {"url": request.url, "title": res["data"].get("title")}
+        except:
+            raise HTTPException(status_code=404, detail=f"Parsing {request.url} failed!")
+
+    else:
+        filename = _find_file(request.file_id)
+        if not filename:
+            raise HTTPException(status_code=404, detail=f"File {request.file_id} not found!")
+
+        filepath = os.path.join(STORAGE_LOCAL_PATH, filename)
+        ext = os.path.splitext(filepath)[-1].lower()
+        loader = get_loader(loader_name=get_loader_class(ext), file_path=filepath)
+
+        if isinstance(loader, TextLoader):
+            loader.encoding = "utf8"
+            docs = loader.load()
+        else:
+            docs = loader.load()
+
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
         source = {
             "file_id": request.file_id,
             "filename": "_".join(filename.split("_")[1:])
         }
 
+<<<<<<< HEAD
     # 如果未加载到文档，则返回空列表
     if not docs:
         return []
@@ -238,11 +351,18 @@ async def split_into_docs(request: File2DocsRequest):
     # 如果文件扩展名不在支持的列表中（例如不是.csv文件）
     if ext not in [".csv"]:
         # 根据请求中的文本分割器名称创建文本分割器
+=======
+    if not docs:
+        return []
+
+    if ext not in [".csv"]:
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
         text_splitter = make_text_splitter(
             splitter_name=request.text_splitter_name,
             chunk_size=request.chunk_size,
             chunk_overlap=request.chunk_overlap,
         )
+<<<<<<< HEAD
 
         # 如果使用的是MarkdownHeaderTextSplitter文本分割器
         if request.text_splitter_name == "MarkdownHeaderTextSplitter":
@@ -269,6 +389,26 @@ async def split_into_docs(request: File2DocsRequest):
                 page_content=d.page_content,  # 文档内容
                 metadata={"source": source},  # 元数据，包括来源信息
                 type="Document",  # 文档类型
+=======
+        if request.text_splitter_name == "MarkdownHeaderTextSplitter":
+            docs = text_splitter.split_text(docs[0].page_content)
+        else:
+            docs = text_splitter.split_documents(docs)
+
+    if not docs:
+        return []
+
+    if request.zh_title_enhance:
+        docs = func_zh_title_enhance(docs)
+
+    return File2DocsResponse(
+        id="docs-" + str(secrets.token_hex(12)),
+        docs=[
+            dict(
+                page_content=d.page_content,
+                metadata={"source": source},
+                type="Document",
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
             )
             for d in docs
         ]
@@ -276,6 +416,7 @@ async def split_into_docs(request: File2DocsRequest):
 
 
 def _find_file(file_id: str):
+<<<<<<< HEAD
 
     files = os.listdir(STORAGE_LOCAL_PATH)  # 获取存储路径下的所有文件列表
     for file in files:
@@ -283,3 +424,10 @@ def _find_file(file_id: str):
             return file  # 返回找到的文件名
     return None  # 如果未找到匹配的文件名，则返回None
 
+=======
+    files = os.listdir(STORAGE_LOCAL_PATH)
+    for file in files:
+        if file.startswith(file_id):
+            return file
+    return None
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d

@@ -10,13 +10,18 @@ import torch
 from loguru import logger
 from sentence_transformers import CrossEncoder
 
+<<<<<<< HEAD
 from api.utils.protocol import (
+=======
+from api.protocol import (
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
     DocumentObj,
     Document,
     RerankResponse,
 )
 
 
+<<<<<<< HEAD
 class BaseReranker(ABC):  # 定义一个抽象基类 BaseReranker
     @abstractmethod  # 定义抽象方法的装饰器，表示该方法在子类中必须实现
     @torch.inference_mode()  # 禁用梯度计算，以节省内存和提高推理速度
@@ -83,3 +88,70 @@ class RAGReranker(BaseReranker):  # 定义一个类 RAGReranker，继承自 Base
             ]
         return RerankResponse(results=docs)  # 返回包含重排序结果的 RerankResponse 实例
 
+=======
+class BaseReranker(ABC):
+    @abstractmethod
+    @torch.inference_mode()
+    def rerank(
+        self,
+        query: str,
+        documents: List[str],
+        batch_size: Optional[int] = 256,
+        top_n: Optional[int] = None,
+        return_documents: Optional[bool] = False,
+    ) -> Dict[str, Any]:
+        ...
+
+
+class RAGReranker(BaseReranker):
+    def __init__(
+        self,
+        model_name_or_path: str,
+        device: str = None,
+    ) -> None:
+        self.client = CrossEncoder(
+            model_name_or_path,
+            device=device,
+            trust_remote_code=True,
+        )
+        logger.info(f"Loading from `{model_name_or_path}`.")
+
+    @torch.inference_mode()
+    def rerank(
+        self,
+        query: str,
+        documents: List[str],
+        batch_size: Optional[int] = 256,
+        top_n: Optional[int] = None,
+        return_documents: Optional[bool] = False,
+        **kwargs: Any,
+    ) -> Optional[RerankResponse]:
+        results = self.client.rank(
+            query=query,
+            documents=documents,
+            top_k=top_n,
+            return_documents=True,
+            batch_size=batch_size,
+            **kwargs,
+        )
+
+        if return_documents:
+            docs = [
+                DocumentObj(
+                    index=int(res["corpus_id"]),
+                    relevance_score=float(res["score"]),
+                    document=Document(text=res["text"]),
+                )
+                for res in results
+            ]
+        else:
+            docs = [
+                DocumentObj(
+                    index=int(res["corpus_id"]),
+                    relevance_score=float(res["score"]),
+                    document=None,
+                )
+                for res in results
+            ]
+        return RerankResponse(results=docs)
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d

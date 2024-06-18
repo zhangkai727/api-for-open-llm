@@ -1,5 +1,6 @@
 from openai import OpenAI
 
+<<<<<<< HEAD
 # 创建一个 OpenAI 客户端实例，用于与 OpenAI API 进行通信
 client = OpenAI(
     api_key="EMPTY",  # API 密钥，用于身份验证
@@ -16,3 +17,18 @@ embedding = client.embeddings.create(
 # 打印嵌入向量的长度，此处假设返回的 embedding 对象具有 data 属性，其中包含嵌入向量的信息
 print(len(embedding.data[0].embedding))
 
+=======
+client = OpenAI(
+    api_key="EMPTY",
+    base_url="http://192.168.20.159:8000/v1/",
+)
+
+
+# compute the embedding of the text
+embedding = client.embeddings.create(
+    input="你好",
+    model="aspire/acge_text_embedding",
+    dimensions=384,
+)
+print(len(embedding.data[0].embedding))
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d

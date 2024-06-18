@@ -28,6 +28,7 @@ from sse_starlette import EventSourceResponse
 from vllm.outputs import RequestOutput
 from vllm.sampling_params import SamplingParams
 
+<<<<<<< HEAD
 from api.core.vllm_engine import VllmEngine
 from api.models import LLM_ENGINE
 from api.utils.compat import dictify, model_validate
@@ -80,6 +81,61 @@ async def create_chat_completion(
 
     token_ids = engine.convert_to_inputs(prompt, token_ids, max_tokens=request.max_tokens)  # 将提示和token_ids转换为输入
     result_generator = None  # 初始化结果生成器为None
+=======
+from api.common import dictify, model_validate
+from api.engine.vllm_engine import VllmEngine
+from api.models import LLM_ENGINE
+from api.protocol import Role, ChatCompletionCreateParams
+from api.utils import (
+    check_api_key,
+    check_completion_requests,
+    get_event_publisher,
+)
+
+chat_router = APIRouter(prefix="/chat")
+vllm_version = vllm.__version__
+
+
+def get_engine():
+    yield LLM_ENGINE
+
+
+@chat_router.post(
+    "/completions",
+    dependencies=[Depends(check_api_key)],
+    status_code=status.HTTP_200_OK,
+)
+async def create_chat_completion(
+    request: ChatCompletionCreateParams,
+    raw_request: Request,
+    engine: VllmEngine = Depends(get_engine),
+):
+    if (not request.messages) or request.messages[-1]["role"] == Role.ASSISTANT.value:
+        raise HTTPException(status_code=400, detail="Invalid request")
+
+    request = await check_completion_requests(
+        request,
+        engine.template.stop,
+        engine.template.stop_token_ids,
+    )
+    request.max_tokens = request.max_tokens or 512
+
+    if request.best_of < request.n:
+        request.best_of = request.n
+
+    params = dictify(request, exclude={"messages"})
+    params.update(dict(prompt_or_messages=request.messages, echo=False))
+    logger.debug(f"==== request ====\n{params}")
+
+    request_id: str = f"chatcmpl-{str(uuid.uuid4())}"
+    token_ids = engine.template.convert_messages_to_ids(
+        messages=request.messages,
+        tools=request.tools,
+        max_tokens=request.max_tokens,
+    )
+
+    result_generator = None
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
     try:
         include = {
             "n",
@@ -94,6 +150,7 @@ async def create_chat_completion(
             "use_beam_search",
             "skip_special_tokens",
             "spaces_between_special_tokens",
+<<<<<<< HEAD
         }  # 包含在参数中的字段集合
         kwargs = dictify(request, include=include)  # 将请求参数转换为字典，包括指定字段
         sampling_params = SamplingParams(
@@ -109,6 +166,24 @@ async def create_chat_completion(
 
             if vllm_version >= "0.4.2":  # 如果vllm版本大于或等于0.4.2
                 decoding_config = await engine.model.get_decoding_config()  # 获取解码配置
+=======
+        }
+        kwargs = dictify(request, include=include)
+        sampling_params = SamplingParams(
+            stop=request.stop or [],
+            stop_token_ids=request.stop_token_ids or [],
+            max_tokens=request.max_tokens,
+            **kwargs,
+        )
+
+        # Todo: support for lora
+        lora_request = None
+        try:
+            from vllm.model_executor.guided_decoding import get_guided_decoding_logits_processor
+
+            if vllm_version >= "0.4.2":
+                decoding_config = await engine.model.get_decoding_config()
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
                 guided_decode_logits_processor = (
                     await get_guided_decoding_logits_processor(
                         request.guided_decoding_backend or decoding_config.guided_decoding_backend,
@@ -129,10 +204,17 @@ async def create_chat_completion(
         except ImportError:
             pass
 
+<<<<<<< HEAD
         if vllm_version >= "0.4.3":  # 如果vllm版本大于或等于0.4.3
             result_generator = engine.model.generate(
                 {
                     "prompt": prompt if isinstance(prompt, str) else None,
+=======
+        if vllm_version >= "0.4.3":
+            result_generator = engine.model.generate(
+                {
+                    "prompt": None,
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
                     "prompt_token_ids": token_ids,
                 },
                 sampling_params,
@@ -141,7 +223,11 @@ async def create_chat_completion(
             )
         else:
             result_generator = engine.model.generate(
+<<<<<<< HEAD
                 prompt if isinstance(prompt, str) else None,
+=======
+                None,
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
                 sampling_params,
                 request_id,
                 token_ids,
@@ -149,12 +235,20 @@ async def create_chat_completion(
             )
 
     except ValueError as e:
+<<<<<<< HEAD
         traceback.print_exc()  # 打印异常的跟踪信息
 
     if request.stream:  # 如果请求需要流式处理
         iterator = create_chat_completion_stream(result_generator, request, request_id, engine)  # 创建结果生成器的流式处理迭代器
         send_chan, recv_chan = anyio.create_memory_object_stream(10)  # 创建内存对象流通道
 
+=======
+        traceback.print_exc()
+
+    if request.stream:
+        iterator = create_chat_completion_stream(result_generator, request, request_id, engine)
+        send_chan, recv_chan = anyio.create_memory_object_stream(10)
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
         return EventSourceResponse(
             recv_chan,
             data_sender_callable=partial(
@@ -163,6 +257,7 @@ async def create_chat_completion(
                 inner_send_chan=send_chan,
                 iterator=iterator,
             ),
+<<<<<<< HEAD
         )  # 返回EventSourceResponse对象，用于推送事件流给客户端
 
     else:
@@ -194,22 +289,67 @@ async def create_chat_completion(
 
             if isinstance(function_call, dict) and "arguments" in function_call:  # 如果存在参数的函数调用
                 function_call = FunctionCall(**function_call)  # 创建FunctionCall对象
+=======
+        )
+    else:
+        # Non-streaming response
+        final_res: RequestOutput = None
+        async for res in result_generator:
+            if raw_request is not None and await raw_request.is_disconnected():
+                await engine.model.abort(request_id)
+                return
+            final_res = res
+
+        assert final_res is not None
+        choices = []
+        for output in final_res.outputs:
+            output.text = output.text.replace("�", "")
+
+            finish_reason = output.finish_reason
+            function_call = None
+            if request.functions or request.tools:
+                try:
+                    res, function_call = engine.template.parse_assistant_response(
+                        output.text, request.tools or request.functions,
+                    )
+                    output.text = res
+                except Exception as e:
+                    traceback.print_exc()
+                    logger.warning("Failed to parse tool call")
+
+            if isinstance(function_call, dict) and "arguments" in function_call:
+                function_call = FunctionCall(**function_call)
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
                 message = ChatCompletionMessage(
                     role="assistant",
                     content=output.text,
                     function_call=function_call
+<<<<<<< HEAD
                 )  # 创建助手消息对象，包括函数调用
                 finish_reason = "function_call"  # 设置结束原因为函数调用
             elif isinstance(function_call, dict) and "function" in function_call:  # 如果存在函数的工具调用
                 finish_reason = "tool_calls"  # 设置结束原因为工具调用
                 tool_calls = [model_validate(ChatCompletionMessageToolCall, function_call)]  # 验证工具调用
+=======
+                )
+                finish_reason = "function_call"
+            elif isinstance(function_call, dict) and "function" in function_call:
+                finish_reason = "tool_calls"
+                tool_calls = [model_validate(ChatCompletionMessageToolCall, function_call)]
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
                 message = ChatCompletionMessage(
                     role="assistant",
                     content=output.text,
                     tool_calls=tool_calls,
+<<<<<<< HEAD
                 )  # 创建助手消息对象，包括工具调用
             else:
                 message = ChatCompletionMessage(role="assistant", content=output.text.strip())  # 创建助手消息对象，仅包括文本内容
+=======
+                )
+            else:
+                message = ChatCompletionMessage(role="assistant", content=output.text.strip())
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
 
             choices.append(
                 Choice(
@@ -217,14 +357,22 @@ async def create_chat_completion(
                     message=message,
                     finish_reason=finish_reason,
                 )
+<<<<<<< HEAD
             )  # 添加选择项
 
         num_prompt_tokens = len(final_res.prompt_token_ids)  # 计算提示令牌数
         num_generated_tokens = sum(len(output.token_ids) for output in final_res.outputs)  # 计算生成令牌数
+=======
+            )
+
+        num_prompt_tokens = len(final_res.prompt_token_ids)
+        num_generated_tokens = sum(len(output.token_ids) for output in final_res.outputs)
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
         usage = CompletionUsage(
             prompt_tokens=num_prompt_tokens,
             completion_tokens=num_generated_tokens,
             total_tokens=num_prompt_tokens + num_generated_tokens,
+<<<<<<< HEAD
         )  # 创建完成使用对象
 
         return ChatCompletion(
@@ -318,3 +466,96 @@ async def create_chat_completion_stream(
                     object="chat.completion.chunk",  # 对象类型为聊天完成块
                 )  # 生成聊天完成块对象的生成器
 
+=======
+        )
+        return ChatCompletion(
+            id=request_id,
+            choices=choices,
+            created=int(time.time()),
+            model=request.model,
+            object="chat.completion",
+            usage=usage,
+        )
+
+
+async def create_chat_completion_stream(
+    generator: AsyncIterator,
+    request: ChatCompletionCreateParams,
+    request_id: str,
+    engine: VllmEngine,
+) -> AsyncIterator:
+    for i in range(request.n):
+        # First chunk with role
+        choice = ChunkChoice(
+            index=i,
+            delta=ChoiceDelta(role="assistant", content=""),
+            finish_reason=None,
+            logprobs=None,
+        )
+        yield ChatCompletionChunk(
+            id=request_id,
+            choices=[choice],
+            created=int(time.time()),
+            model=request.model,
+            object="chat.completion.chunk",
+        )
+
+        previous_texts = [""] * request.n
+        previous_num_tokens = [0] * request.n
+        async for res in generator:
+            res: RequestOutput
+            for output in res.outputs:
+                i = output.index
+                output.text = output.text.replace("�", "")
+
+                delta_text = output.text[len(previous_texts[i]):]
+                previous_texts[i] = output.text
+                previous_num_tokens[i] = len(output.token_ids)
+
+                finish_reason = output.finish_reason
+                delta = None
+
+                if finish_reason is None:
+                    delta = ChoiceDelta(content=delta_text)
+                elif request.functions or request.tools:
+                    call_info = None
+                    try:
+                        res, call_info = engine.template.parse_assistant_response(
+                            output.text, request.tools or request.functions,
+                        )
+                    except Exception as e:
+                        traceback.print_exc()
+                        logger.warning("Failed to parse tool call")
+
+                    if isinstance(call_info, dict) and "arguments" in call_info:
+                        finish_reason = "function_call"
+                        function_call = ChoiceDeltaFunctionCall(**call_info)
+                        delta = ChoiceDelta(
+                            role="assistant",
+                            content=delta_text,
+                            function_call=function_call
+                        )
+                    elif isinstance(call_info, dict) and "function" in call_info:
+                        finish_reason = "tool_calls"
+                        call_info["index"] = 0
+                        tool_calls = [model_validate(ChoiceDeltaToolCall, call_info)]
+                        delta = ChoiceDelta(
+                            role="assistant",
+                            content=delta_text,
+                            tool_calls=tool_calls,
+                        )
+                
+                choice = ChunkChoice(
+                    index=i,
+                    delta=delta or ChoiceDelta(content=delta_text),
+                    finish_reason=finish_reason,
+                    logprobs=None,
+                )
+                yield ChatCompletionChunk(
+                    id=request_id,
+                    choices=[choice],
+                    created=int(time.time()),
+                    model=request.model,
+                    object="chat.completion.chunk",
+                )
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d

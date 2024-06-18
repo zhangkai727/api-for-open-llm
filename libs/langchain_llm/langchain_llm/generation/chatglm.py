@@ -42,7 +42,11 @@ def process_response(response: str) -> str:
         ["!", "！"],
         [":", "："],
         [";", "；"],
+<<<<<<< HEAD
         ["?", "?"],
+=======
+        ["\?", "？"],
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
     ]
     for item in punkts:
         response = re.sub(r"([\u4e00-\u9fff])%s" % item[0], r"\1%s" % item[1], response)

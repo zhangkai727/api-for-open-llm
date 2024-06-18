@@ -6,6 +6,10 @@ COPY requirements.txt /workspace/
 
 RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple && \
     pip install bitsandbytes --upgrade && \
+<<<<<<< HEAD
     pip install vllm==0.4.3 && \
+=======
+    pip install vllm>=0.4.3 && \
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
     pip install --no-cache-dir -r /workspace/requirements.txt && \
     pip uninstall transformer-engine -y

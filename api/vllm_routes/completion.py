@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 import asyncio
+=======
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
 import time
 import traceback
 import uuid
@@ -16,6 +19,7 @@ from openai.types.completion_usage import CompletionUsage
 from sse_starlette import EventSourceResponse
 from vllm.outputs import RequestOutput
 from vllm.sampling_params import SamplingParams
+<<<<<<< HEAD
 
 from api.core.vllm_engine import VllmEngine
 from api.models import LLM_ENGINE
@@ -23,10 +27,21 @@ from api.utils.compat import dictify
 from api.utils.protocol import CompletionCreateParams
 from api.utils.request import (
     handle_request,
+=======
+from vllm.utils import merge_async_iterators
+
+from api.common import dictify
+from api.engine.vllm_engine import VllmEngine
+from api.models import LLM_ENGINE
+from api.protocol import CompletionCreateParams
+from api.utils import (
+    check_completion_requests,
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
     get_event_publisher,
     check_api_key,
 )
 
+<<<<<<< HEAD
 completion_router = APIRouter()  # 创建API路由器对象
 
 vllm_version = vllm.__version__  # 获取VLLM库的版本号
@@ -95,6 +110,38 @@ def merge_async_iterators(*iterators):
         await asyncio.gather(*_tasks)  # 等待所有任务完成
 
     return consumer()  # 返回合并后的异步迭代器函数
+=======
+completion_router = APIRouter()
+vllm_version = vllm.__version__
+
+
+def get_engine():
+    yield LLM_ENGINE
+
+
+def parse_prompt_format(prompt) -> Tuple[bool, list]:
+    # get the prompt, openai supports the following
+    # "a string, array of strings, array of tokens, or array of token arrays."
+    prompt_is_tokens = False
+    prompts = [prompt]  # case 1: a string
+    if isinstance(prompt, list):
+        if len(prompt) == 0:
+            raise ValueError("please provide at least one prompt")
+        elif isinstance(prompt[0], str):
+            prompt_is_tokens = False
+            prompts = prompt  # case 2: array of strings
+        elif isinstance(prompt[0], int):
+            prompt_is_tokens = True
+            prompts = [prompt]  # case 3: array of tokens
+        elif isinstance(prompt[0], list) and isinstance(prompt[0][0], int):
+            prompt_is_tokens = True
+            prompts = prompt  # case 4: array of token arrays
+        else:
+            raise ValueError(
+                "prompt must be a string, array of strings, array of tokens, or array of token arrays"
+            )
+    return prompt_is_tokens, prompts
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
 
 
 @completion_router.post("/completions", dependencies=[Depends(check_api_key)])
@@ -108,6 +155,7 @@ async def create_completion(
     See https://platform.openai.com/docs/api-reference/completions/create
     for the API specification. This API mimics the OpenAI Completion API.
     """
+<<<<<<< HEAD
     request.max_tokens = request.max_tokens or 128  # 如果未指定最大令牌数，则默认为128
     request = await handle_request(request, engine.prompt_adapter.stop, chat=False)  # 处理请求
 
@@ -124,6 +172,29 @@ async def create_completion(
 
     try:
         include = {  # 包含在采样参数中的字段
+=======
+    request.max_tokens = request.max_tokens or 128
+    request = await check_completion_requests(
+        request,
+        engine.template.stop,
+        engine.template.stop_token_ids,
+        chat=False,
+    )
+
+    if isinstance(request.prompt, list):
+        request.prompt = request.prompt[0]
+
+    params = dictify(request, exclude={"prompt"})
+    params.update(dict(prompt_or_messages=request.prompt))
+    logger.debug(f"==== request ====\n{params}")
+
+    request_id: str = f"cmpl-{str(uuid.uuid4())}"
+    # Schedule the request and get the result generator.
+    generators = []
+    num_prompts = 1
+    try:
+        include = {
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
             "n",
             "presence_penalty",
             "frequency_penalty",
@@ -137,6 +208,7 @@ async def create_completion(
             "skip_special_tokens",
             "spaces_between_special_tokens",
         }
+<<<<<<< HEAD
         kwargs = dictify(request, include=include)  # 生成包含指定字段的请求参数字典
         sampling_params = SamplingParams(  # 创建采样参数对象
             stop=request.stop or [],  # 停止令牌列表，默认为空列表
@@ -145,14 +217,30 @@ async def create_completion(
             **kwargs,  # 包含其他请求参数
         )
         lora_request = engine._maybe_get_lora(request.model)  # 获取LORA请求对象
+=======
+        kwargs = dictify(request, include=include)
+        sampling_params = SamplingParams(
+            stop=request.stop or [],
+            stop_token_ids=request.stop_token_ids or [],
+            max_tokens=request.max_tokens,
+            **kwargs,
+        )
+        lora_request = None
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
 
         try:
             from vllm.model_executor.guided_decoding import get_guided_decoding_logits_processor
 
             if vllm_version >= "0.4.2":
+<<<<<<< HEAD
                 decoding_config = await engine.model.get_decoding_config()  # 获取解码配置
                 guided_decode_logits_processor = (
                     await get_guided_decoding_logits_processor(  # 获取引导解码逻辑处理器
+=======
+                decoding_config = await engine.model.get_decoding_config()
+                guided_decode_logits_processor = (
+                    await get_guided_decoding_logits_processor(
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
                         request.guided_decoding_backend or decoding_config.guided_decoding_backend,
                         request,
                         engine.tokenizer,
@@ -160,13 +248,18 @@ async def create_completion(
                 )
             else:
                 guided_decode_logits_processor = (
+<<<<<<< HEAD
                     await get_guided_decoding_logits_processor(  # 获取引导解码逻辑处理器
+=======
+                    await get_guided_decoding_logits_processor(
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
                         request,
                         engine.tokenizer,
                     )
                 )
             if guided_decode_logits_processor:
                 sampling_params.logits_processors = sampling_params.logits_processors or []
+<<<<<<< HEAD
                 sampling_params.logits_processors.append(guided_decode_logits_processor)  # 添加引导解码处理器
         except ImportError:
             pass
@@ -184,6 +277,25 @@ async def create_completion(
                 generator = engine.model.generate(  # 生成结果生成器对象
                     {
                         "prompt": prompt,
+=======
+                sampling_params.logits_processors.append(guided_decode_logits_processor)
+        except ImportError:
+            pass
+
+        prompt_is_tokens, prompts = parse_prompt_format(request.prompt)
+        num_prompts = len(prompts)
+
+        for i, prompt in enumerate(prompts):
+            if prompt_is_tokens:
+                input_ids = prompt
+            else:
+                input_ids = engine.tokenizer(prompt).input_ids
+
+            if vllm_version >= "0.4.3":
+                generator = engine.model.generate(
+                    {
+                        "prompt": prompt if isinstance(prompt, str) else None,
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
                         "prompt_token_ids": input_ids,
                     },
                     sampling_params,
@@ -191,7 +303,11 @@ async def create_completion(
                     lora_request,
                 )
             else:
+<<<<<<< HEAD
                 generator = engine.model.generate(  # 生成结果生成器对象
+=======
+                generator = engine.model.generate(
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
                     prompt,
                     sampling_params,
                     f"{request_id}-{i}",
@@ -199,6 +315,7 @@ async def create_completion(
                     lora_request=lora_request
                 )
 
+<<<<<<< HEAD
             generators.append(generator)  # 将结果生成器添加到列表中
     except ValueError as e:
         traceback.print_exc()  # 打印异常信息
@@ -213,6 +330,22 @@ async def create_completion(
         return EventSourceResponse(  # 返回事件源响应
             recv_chan,
             data_sender_callable=partial(  # 部分应用发送数据的可调用函数
+=======
+            generators.append(generator)
+    except ValueError as e:
+        traceback.print_exc()
+
+    result_generator: AsyncIterator[Tuple[int, RequestOutput]] = merge_async_iterators(*generators)
+
+    if request.stream:
+        iterator = create_completion_stream(
+            engine, result_generator, request, request_id, num_prompts
+        )
+        send_chan, recv_chan = anyio.create_memory_object_stream(10)
+        return EventSourceResponse(
+            recv_chan,
+            data_sender_callable=partial(
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
                 get_event_publisher,
                 request=raw_request,
                 inner_send_chan=send_chan,
@@ -220,6 +353,7 @@ async def create_completion(
             ),
         )
     else:
+<<<<<<< HEAD
         # 非流式响应
         final_res_batch = [None] * num_prompts  # 初始化最终结果批次列表
         async for i, res in result_generator:
@@ -237,6 +371,24 @@ async def create_completion(
             prompt_token_ids = final_res.prompt_token_ids  # 获取提示的令牌ID
             prompt_logprobs = final_res.prompt_logprobs  # 获取提示的对数概率
             prompt_text = final_res.prompt  # 获取提示文本
+=======
+        # Non-streaming response
+        final_res_batch = [None] * num_prompts
+        async for i, res in result_generator:
+            if await raw_request.is_disconnected():
+                # Abort the request if the client disconnects.
+                await engine.model.abort(f"{request_id}-{i}")
+            final_res_batch[i] = res
+
+        choices = []
+        num_prompt_tokens = 0
+        num_generated_tokens = 0
+        for final_res in final_res_batch:
+            final_res: RequestOutput
+            prompt_token_ids = final_res.prompt_token_ids
+            prompt_logprobs = final_res.prompt_logprobs
+            prompt_text = final_res.prompt
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
 
             for output in final_res.outputs:
                 if request.echo and request.max_tokens == 0:
@@ -253,7 +405,11 @@ async def create_completion(
                     output_text = output.text
 
                 if request.logprobs is not None:
+<<<<<<< HEAD
                     logprobs = engine.create_logprobs(  # 创建对数概率
+=======
+                    logprobs = engine.create_completion_logprobs(
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
                         token_ids=token_ids,
                         top_logprobs=top_logprobs,
                         num_output_top_logprobs=request.logprobs,
@@ -261,24 +417,41 @@ async def create_completion(
                 else:
                     logprobs = None
 
+<<<<<<< HEAD
                 choice = CompletionChoice(  # 创建完成选项对象
+=======
+                choice = CompletionChoice(
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
                     index=len(choices),
                     text=output_text,
                     finish_reason=output.finish_reason,
                     logprobs=logprobs,
                 )
+<<<<<<< HEAD
                 choices.append(choice)  # 添加选择对象到列表中
 
                 num_prompt_tokens += len(prompt_token_ids)  # 更新提示令牌数量
                 num_generated_tokens += sum(len(output.token_ids) for output in final_res.outputs)  # 更新生成的令牌数量
 
         usage = CompletionUsage(  # 创建完成使用情况对象
+=======
+                choices.append(choice)
+
+                num_prompt_tokens += len(prompt_token_ids)
+                num_generated_tokens += sum(len(output.token_ids) for output in final_res.outputs)
+
+        usage = CompletionUsage(
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
             prompt_tokens=num_prompt_tokens,
             completion_tokens=num_generated_tokens,
             total_tokens=num_prompt_tokens + num_generated_tokens,
         )
 
+<<<<<<< HEAD
         return Completion(  # 返回完成对象
+=======
+        return Completion(
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
             id=request_id,
             choices=choices,
             created=int(time.time()),
@@ -289,6 +462,7 @@ async def create_completion(
 
 
 async def create_completion_stream(
+<<<<<<< HEAD
     engine: VllmEngine,  # 引擎对象，用于处理生成的结果
     generator: AsyncIterator,  # 异步生成器，生成模型输出结果
     request: CompletionCreateParams,  # 完成请求的参数对象
@@ -340,10 +514,56 @@ async def create_completion_stream(
                         top_logprobs=top_logprobs,
                         num_output_top_logprobs=request.logprobs,
                         initial_text_offset=len(previous_texts[i]),  # 初始文本偏移量
+=======
+    engine: VllmEngine,
+    generator: AsyncIterator,
+    request: CompletionCreateParams,
+    request_id: str,
+    num_prompts: int,
+) -> AsyncIterator:
+    previous_texts = [""] * request.n * num_prompts
+    previous_num_tokens = [0] * request.n * num_prompts
+    has_echoed = [False] * request.n * num_prompts
+    try:
+        async for prompt_idx, res in generator:
+            res: RequestOutput
+            for output in res.outputs:
+                i = output.index + prompt_idx * request.n
+                output.text = output.text.replace("�", "")
+
+                if request.echo and request.max_tokens == 0:
+                    # only return the prompt
+                    delta_text = res.prompt
+                    delta_token_ids = res.prompt_token_ids
+                    top_logprobs = res.prompt_logprobs
+                    has_echoed[i] = True
+                elif request.echo and request.max_tokens > 0 and not has_echoed[i]:
+                    # echo the prompt and first token
+                    delta_text = res.prompt + output.text
+                    delta_token_ids = res.prompt_token_ids + output.token_ids
+                    top_logprobs = res.prompt_logprobs + (output.logprobs or [])
+                    has_echoed[i] = True
+                else:
+                    # return just the delta
+                    delta_text = output.text[len(previous_texts[i]):]
+                    delta_token_ids = output.token_ids[previous_num_tokens[i]:]
+                    top_logprobs = output.logprobs[previous_num_tokens[i]:] if output.logprobs else None
+
+                if request.logprobs is not None:
+                    assert top_logprobs is not None, (
+                        "top_logprobs must be provided when logprobs "
+                        "is requested")
+                    logprobs = engine.create_completion_logprobs(
+                        token_ids=delta_token_ids,
+                        top_logprobs=top_logprobs,
+                        num_output_top_logprobs=request.logprobs,
+                        initial_text_offset=len(previous_texts[i]),
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
                     )
                 else:
                     logprobs = None
 
+<<<<<<< HEAD
                 # 更新先前文本和令牌数量
                 previous_texts[i] = output.text
                 previous_num_tokens[i] = len(output.token_ids)
@@ -366,6 +586,25 @@ async def create_completion_stream(
                 )
 
                 # 如果存在完成原因，则生成额外的完成对象
+=======
+                previous_texts[i] = output.text
+                previous_num_tokens[i] = len(output.token_ids)
+
+                choice = CompletionChoice(
+                    index=i,
+                    text=delta_text,
+                    finish_reason="stop",
+                    logprobs=logprobs,
+                )
+                yield Completion(
+                    id=request_id,
+                    choices=[choice],
+                    created=int(time.time()),
+                    model=request.model,
+                    object="text_completion",
+                )
+
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
                 if output.finish_reason is not None:
                     if request.logprobs is not None:
                         logprobs = Logprobs(
@@ -375,6 +614,7 @@ async def create_completion_stream(
                         logprobs = None
 
                     choice = CompletionChoice(
+<<<<<<< HEAD
                         index=i,  # 选项索引
                         text=delta_text,  # 选项文本
                         finish_reason="stop",  # 完成原因设置为"stop"
@@ -392,3 +632,19 @@ async def create_completion_stream(
     except:
         traceback.print_exc()  # 捕获并打印异常堆栈信息
 
+=======
+                        index=i,
+                        text=delta_text,
+                        finish_reason="stop",
+                        logprobs=logprobs,
+                    )
+                    yield Completion(
+                        id=request_id,
+                        choices=[choice],
+                        created=int(time.time()),
+                        model=request.model,
+                        object="text_completion",
+                    )
+    except:
+        traceback.print_exc()
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d

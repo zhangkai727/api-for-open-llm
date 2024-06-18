@@ -66,6 +66,7 @@ class XVLLM(VLLM):
 
         from vllm import SamplingParams
 
+<<<<<<< HEAD
         # 构建采样参数
         params = {**self._default_params, **kwargs, "stop": stop}
         sampling_params = SamplingParams(**params)
@@ -74,6 +75,15 @@ class XVLLM(VLLM):
 
         choices = []
         # 解析模型输出并生成完成选项
+=======
+        # build sampling parameters
+        params = {**self._default_params, **kwargs, "stop": stop}
+        sampling_params = SamplingParams(**params)
+        # call the model
+        outputs = self.client.generate([prompt], sampling_params)[0]
+
+        choices = []
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
         for output in outputs.outputs:
             text = output.text
             choices.append(
@@ -85,7 +95,10 @@ class XVLLM(VLLM):
                 )
             )
 
+<<<<<<< HEAD
         # 统计生成的token数目
+=======
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
         num_prompt_tokens = len(outputs.prompt_token_ids)
         num_generated_tokens = sum(len(output.token_ids) for output in outputs.outputs)
         usage = CompletionUsage(
@@ -94,7 +107,10 @@ class XVLLM(VLLM):
             total_tokens=num_prompt_tokens + num_generated_tokens,
         )
 
+<<<<<<< HEAD
         # 返回完成对象
+=======
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
         return Completion(
             id=f"cmpl-{str(uuid.uuid4())}",
             choices=choices,
@@ -128,22 +144,33 @@ class ChatVLLM(BaseChatModel):
     def validate_environment(cls, values: Dict) -> Dict:
         """Validate that python package exists in environment."""
 
+<<<<<<< HEAD
         # 检查是否需要构建提示或输入。
+=======
+        # Check whether to need to construct prompts or inputs. """
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
         model_name = values["llm"].model_name
         values["chat_template"] = values["chat_template"].lower() if values["chat_template"] is not None else None
         if not values["prompt_adapter"]:
             try:
+<<<<<<< HEAD
                 # 尝试获取适配器以处理模型名称和聊天模板
+=======
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
                 values["prompt_adapter"] = get_prompt_adapter(model_name, values["chat_template"])
             except KeyError:
                 values["chat_template"] = None
 
+<<<<<<< HEAD
         # 获取模型的分词器
+=======
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
         values["tokenizer"] = values["llm"].client.get_tokenizer()
 
         return values
 
     def _get_parameters(
+<<<<<<< HEAD
             self,
             stop: Optional[List[str]] = None,
             **kwargs: Any,
@@ -156,31 +183,59 @@ class ChatVLLM(BaseChatModel):
 
         Returns:
             Dict[str, Any]: 包含默认参数和用户提供的kwargs的合并参数字典。
+=======
+        self,
+        stop: Optional[List[str]] = None,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        """
+        Performs sanity check, preparing parameters.
+
+        Args:
+            stop (Optional[List[str]]): List of stop sequences.
+
+        Returns:
+            Dictionary containing the combined parameters.
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
         """
 
         params = self.llm._default_params
 
+<<<<<<< HEAD
         # 从prompt_adapter中获取停止序列及其对应的token IDs
+=======
+        # then sets it as configured, or default to an empty list:
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
         _stop, _stop_token_ids = [], []
         if isinstance(self.prompt_adapter.stop, dict):
             _stop_token_ids = self.prompt_adapter.stop.get("token_ids", [])
             _stop = self.prompt_adapter.stop.get("strings", [])
 
+<<<<<<< HEAD
         # 确保stop是一个列表，如果为None则默认为空列表
+=======
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
         stop = stop or []
         if isinstance(stop, str):
             stop = [stop]
 
+<<<<<<< HEAD
         # 合并并去重来自prompt_adapter和用户输入的停止序列
         params["stop"] = list(set(_stop + stop))
         params["stop_token_ids"] = list(set(_stop_token_ids))
 
         # 将params与用户提供的额外kwargs合并
+=======
+        params["stop"] = list(set(_stop + stop))
+        params["stop_token_ids"] = list(set(_stop_token_ids))
+
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
         params = {**params, **kwargs}
 
         return params
 
     def _generate(
+<<<<<<< HEAD
             self,
             messages: List[BaseMessage],
             stop: Optional[List[str]] = None,
@@ -197,6 +252,23 @@ class ChatVLLM(BaseChatModel):
         sampling_params = SamplingParams(**params)
 
         # 调用语言模型根据提示和采样参数生成文本
+=======
+        self,
+        messages: List[BaseMessage],
+        stop: Optional[List[str]] = None,
+        run_manager: Optional[CallbackManagerForLLMRun] = None,
+        **kwargs: Any,
+    ) -> ChatResult:
+        from vllm import SamplingParams
+
+        llm_input = self._to_chat_prompt(messages)
+        params = self._get_parameters(stop, **kwargs)
+
+        # build sampling parameters
+        sampling_params = SamplingParams(**params)
+        # call the model
+
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
         if isinstance(llm_input, str):
             prompts, prompt_token_ids = [llm_input], None
         else:
@@ -205,7 +277,10 @@ class ChatVLLM(BaseChatModel):
         outputs = self.llm.client.generate(prompts, sampling_params, prompt_token_ids)
 
         generations = []
+<<<<<<< HEAD
         # 将模型输出处理为ChatGeneration对象
+=======
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
         for output in outputs:
             text = output.outputs[0].text
             generations.append(ChatGeneration(message=AIMessage(content=text)))
@@ -213,6 +288,7 @@ class ChatVLLM(BaseChatModel):
         return ChatResult(generations=generations)
 
     def _to_chat_prompt(self, messages: List[BaseMessage]) -> Union[List[int], Dict[str, Any]]:
+<<<<<<< HEAD
         """将消息列表转换为语言模型预期的格式。"""
         if not messages:
             raise ValueError("必须提供至少一个HumanMessage")
@@ -245,6 +321,37 @@ class ChatVLLM(BaseChatModel):
         """
         if self.prompt_adapter.function_call_available:
             # 如果可以调用函数，使用prompt_adapter对消息进行后处理
+=======
+        """Convert a list of messages into a prompt format expected by wrapped LLM."""
+        if not messages:
+            raise ValueError("at least one HumanMessage must be provided")
+
+        if not isinstance(messages[-1], HumanMessage):
+            raise ValueError("last message must be a HumanMessage")
+
+        messages_dicts = [self._to_chatml_format(m) for m in messages]
+
+        return self._apply_chat_template(messages_dicts)
+
+    def _apply_chat_template(
+        self,
+        messages: Union[List[ChatCompletionMessageParam], Dict[str, Any]],
+        functions: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
+    ) -> Union[str, List[int]]:
+        """
+        Apply chat template to generate model inputs.
+
+        Args:
+            messages (List[ChatCompletionMessageParam]): List of chat completion message parameters.
+            functions (Optional[Union[Dict[str, Any], List[Dict[str, Any]]]], optional): Functions to apply to the messages. Defaults to None.
+            tools (Optional[List[Dict[str, Any]]], optional): Tools to apply to the messages. Defaults to None.
+
+        Returns:
+            Union[str, List[int]]: The generated inputs.
+        """
+        if self.prompt_adapter.function_call_available:
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
             messages = self.prompt_adapter.postprocess_messages(
                 messages, functions, tools,
             )
@@ -252,13 +359,19 @@ class ChatVLLM(BaseChatModel):
                 logger.debug(f"==== Messages with tools ====\n{messages}")
 
         if "chatglm3" in self.llm.model_name:
+<<<<<<< HEAD
             # 如果模型名称包含"chatglm3"，使用tokenizer构建聊天输入
+=======
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
             query, role = messages[-1]["content"], messages[-1]["role"]
             return self.tokenizer.build_chat_input(
                 query, history=messages[:-1], role=role
             )["input_ids"][0].tolist()
         elif "qwen" in self.llm.model_name:
+<<<<<<< HEAD
             # 如果模型名称包含"qwen"，使用build_qwen_chat_input构建聊天输入
+=======
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
             return build_qwen_chat_input(
                 self.tokenizer,
                 messages,
@@ -267,7 +380,10 @@ class ChatVLLM(BaseChatModel):
                 tools,
             )
         else:
+<<<<<<< HEAD
             # 否则，根据条件应用聊天模板到消息
+=======
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
             if getattr(self.tokenizer, "chat_template", None) and not self.chat_template:
                 prompt = self.tokenizer.apply_chat_template(
                     conversation=messages,
@@ -278,6 +394,7 @@ class ChatVLLM(BaseChatModel):
                 prompt = self.prompt_adapter.apply_chat_template(messages)
             return prompt
 
+<<<<<<< HEAD
     def call_as_openai(
             self,
             messages: Union[List[ChatCompletionMessageParam], Dict[str, Any]],
@@ -285,6 +402,34 @@ class ChatVLLM(BaseChatModel):
             **kwargs: Any,
     ) -> ChatCompletion:
         # 调用模型并返回输出结果。
+=======
+    def _to_chatml_format(self, message: BaseMessage) -> dict:
+        """Convert LangChain message to ChatML format."""
+
+        if isinstance(message, SystemMessage):
+            role = "system"
+        elif isinstance(message, AIMessage):
+            role = "assistant"
+        elif isinstance(message, HumanMessage):
+            role = "user"
+        else:
+            raise ValueError(f"Unknown message type: {type(message)}")
+
+        return {"role": role, "content": message.content}
+
+    @property
+    def _llm_type(self) -> str:
+        return "vllm-chat-wrapper"
+
+    def call_as_openai(
+        self,
+        messages: Union[List[ChatCompletionMessageParam], Dict[str, Any]],
+        stop: Optional[List[str]] = None,
+        **kwargs: Any,
+    ) -> ChatCompletion:
+        """Call the model and return the output.
+        """
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
         from vllm import SamplingParams
 
         llm_input = self._apply_chat_template(
@@ -294,10 +439,17 @@ class ChatVLLM(BaseChatModel):
         )
         params = self._get_parameters(stop, **kwargs)
 
+<<<<<<< HEAD
         # 构建采样参数
         sampling_params = SamplingParams(**params)
 
         # 调用模型
+=======
+        # build sampling parameters
+        sampling_params = SamplingParams(**params)
+        # call the model
+
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
         if isinstance(llm_input, str):
             prompts, prompt_token_ids = [llm_input], None
         else:
@@ -365,6 +517,7 @@ class ChatVLLM(BaseChatModel):
             object="chat.completion",
             usage=usage,
         )
+<<<<<<< HEAD
 
     def _to_chatml_format(self, message: BaseMessage) -> dict:
         # 将 LangChain 消息转换为 ChatML 格式。
@@ -432,3 +585,5 @@ class ChatVLLM(BaseChatModel):
                 prompt = self.prompt_adapter.apply_chat_template(messages)
             return prompt
 
+=======
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d

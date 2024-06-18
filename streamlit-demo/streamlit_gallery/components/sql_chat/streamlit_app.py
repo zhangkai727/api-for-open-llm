@@ -7,6 +7,7 @@ from langchain_community.utilities.sql_database import SQLDatabase
 from .utils import create_sql_query, create_llm_chain
 
 
+<<<<<<< HEAD
 import os
 import pandas as pd
 import streamlit as st
@@ -42,10 +43,46 @@ def main():
 
     if "messages" not in st.session_state:
         st.session_state.messages = []  # 如果会话状态中没有 messages 键，则初始化为空列表
+=======
+def main():
+    st.title("💬 SQL Chatbot")
+
+    base_url = os.getenv("SQL_CHAT_API_BASE")
+    col1, col2 = st.columns(2)
+
+    with col1:
+        with st.expander(label="✨ 简介"):
+            st.markdown("""+ SQL问答流程：
+
+    + 基于用户问题和选定表结构生成可执行的 sql 语句
+
+    + 执行 sql 语句，返回数据库查询结果
+    
+    + [TODO] 通过 schema link 自动寻找相关的表
+
+    + [TODO] 根据查询结果对用户问题进行回复""")
+
+    with col2:
+        with st.expander("🐬 数据库配置", False):
+            db_url = st.text_input("URL", placeholder="mysql+pymysql://")
+            if db_url:
+                try:
+                    db = SQLDatabase.from_uri(database_uri=db_url)
+                    table_names = db.get_usable_table_names()
+                except:
+                    table_names = []
+                    st.error("Wrong configuration for database connection!")
+
+                include_tables = st.multiselect("选择查询表", table_names)
+
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
 
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             if message["role"] == "user":
+<<<<<<< HEAD
                 st.markdown(message["content"])  # 如果角色是用户，则显示用户的输入内容
             else:
                 st.markdown(message["content"])  # 如果角色是助手，则显示助手的回复内容
@@ -60,11 +97,28 @@ def main():
         st.session_state.messages.append({"role": "user", "content": query})  # 将用户输入添加到会话状态的消息列表中
         with st.chat_message("user"):
             st.markdown(query)  # 显示用户输入的查询内容
+=======
+                st.markdown(message["content"])
+            else:
+                st.markdown(message["content"])
+                st.markdown("### SQL Query")
+                if message["sql"] is not None:
+                    st.code(message["sql"], language="sql")
+                if message["data"] is not None:
+                    with st.expander("展示查询结果"):
+                        st.dataframe(message["data"], use_container_width=True)
+
+    if query := st.chat_input("2022年xx大学参与了哪些项目？"):
+        st.session_state.messages.append({"role": "user", "content": query})
+        with st.chat_message("user"):
+            st.markdown(query)
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
 
         with st.chat_message("assistant"):
             message_placeholder = st.empty()
             full_response = ""
 
+<<<<<<< HEAD
             sql_query, sql_result = create_sql_query(query, base_url, db_url, include_tables)  # 创建 SQL 查询语句和查询结果
             data = pd.DataFrame(sql_result) if sql_result else None  # 将查询结果转换为 DataFrame，如果没有结果则为 None
             str_data = data.to_markdown() if data is not None else ""  # 将 DataFrame 转换为 Markdown 格式的字符串
@@ -84,6 +138,27 @@ def main():
             if data is not None:
                 with st.expander("展示查询结果"):
                     st.dataframe(data, use_container_width=True)  # 如果存在查询结果，则以表格形式展示
+=======
+            sql_query, sql_result = create_sql_query(query, base_url, db_url, include_tables)
+            data = pd.DataFrame(sql_result) if sql_result else None
+            str_data = data.to_markdown() if data is not None else ""
+
+            llm_chain = create_llm_chain(base_url)
+            for chunk in llm_chain.stream(
+                {"question": query, "query": sql_query, "result": str_data}
+            ):
+                full_response += chunk or ""
+                message_placeholder.markdown(full_response + "▌")
+
+            message_placeholder.markdown(full_response)
+            if sql_query:
+                st.markdown("### SQL Query")
+                st.code(sql_query, language="sql")
+
+            if data is not None:
+                with st.expander("展示查询结果"):
+                    st.dataframe(data, use_container_width=True)
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
 
         st.session_state.messages.append(
             {
@@ -96,5 +171,9 @@ def main():
 
 
 if __name__ == "__main__":
+<<<<<<< HEAD
     main()  # 调用主函数，启动 SQL Chatbot 的交互界面
 
+=======
+    main()
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d

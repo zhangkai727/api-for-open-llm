@@ -6,6 +6,7 @@ from openai.types.model import Model
 from pydantic import BaseModel
 
 from api.config import SETTINGS
+<<<<<<< HEAD
 from api.models import LLM_ENGINE
 from api.utils.request import check_api_key
 
@@ -15,6 +16,17 @@ model_router = APIRouter # 创建一个名为model_router的API路由器对象
 class ModelList(BaseModel):
     object: str = "list"  # 对象类型为列表
     data: List[Model] = []  # 包含Model对象的列表
+=======
+from api.utils import check_api_key
+
+model_router = APIRouter()
+
+
+class ModelList(BaseModel):
+    object: str = "list"
+    data: List[Model] = []
+
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
 
 available_models = ModelList(
     data=[
@@ -27,6 +39,7 @@ available_models = ModelList(
         for name in SETTINGS.model_names if name
     ]
 )
+<<<<<<< HEAD
 """
 创建一个可用模型列表的实例，其中每个模型由Model对象表示，具有以下属性：
 - id: 模型名称
@@ -34,6 +47,9 @@ available_models = ModelList(
 - created: 当前时间戳
 - owned_by: "open"
 """
+=======
+
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
 
 @model_router.get(
     "/models",
@@ -41,6 +57,7 @@ available_models = ModelList(
     status_code=status.HTTP_200_OK,
 )
 async def show_available_models():
+<<<<<<< HEAD
     """
     处理GET请求，返回可用模型列表。
 
@@ -57,6 +74,10 @@ async def show_available_models():
                 res.data.append(m)  # 将新的模型添加到可用模型列表
 
     return res  # 返回包含可用模型信息的ModelList对象
+=======
+    return available_models
+
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
 
 @model_router.get(
     "/models/{model}",
@@ -64,6 +85,7 @@ async def show_available_models():
     status_code=status.HTTP_200_OK,
 )
 async def retrieve_model():
+<<<<<<< HEAD
     """
     处理GET请求，检索特定模型的信息。
 
@@ -77,3 +99,11 @@ async def retrieve_model():
         owned_by="open"  # 拥有者为"open"
     )
 
+=======
+    return Model(
+        id=model,
+        object="model",
+        created=int(time.time()),
+        owned_by="open"
+    )
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d

@@ -4,12 +4,18 @@ from loguru import logger
 from openai import OpenAI
 
 client = OpenAI(
+<<<<<<< HEAD
     api_key="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",  # 设置OpenAI API的密钥
     base_url="http://192.168.20.59:7891/v1/",  # 设置OpenAI API的基础URL
+=======
+    api_key="EMPTY",
+    base_url="http://192.168.20.59:7891/v1/",
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
 )
 
 
 def call_qwen(messages, functions=None):
+<<<<<<< HEAD
     logger.info(messages)  # 记录传入的消息到日志
     if functions:
         response = client.chat.completions.create(
@@ -21,6 +27,18 @@ def call_qwen(messages, functions=None):
     logger.info(response.choices[0].message.content)  # 记录响应的第一个选择的内容到日志
     return response  # 返回OpenAI API的响应对象
 
+=======
+    logger.info(messages)
+    if functions:
+        response = client.chat.completions.create(
+            model="Qwen", messages=messages, functions=functions
+        )
+    else:
+        response = client.chat.completions.create(model="Qwen", messages=messages)
+    logger.info(response.model_dump())
+    logger.info(response.choices[0].message.content)
+    return response
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
 
 
 def run_test_1():

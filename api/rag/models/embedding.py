@@ -13,6 +13,7 @@ from openai.types.create_embedding_response import Usage
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import normalize_embeddings
 
+<<<<<<< HEAD
 from api.utils.protocol import CreateEmbeddingResponse, Embedding
 
 
@@ -25,6 +26,21 @@ class BaseEmbedding(ABC):  # 定义一个抽象基类 BaseEmbedding
     ) -> CreateEmbeddingResponse:  # 方法返回值的类型为 CreateEmbeddingResponse
         ...
 
+=======
+from api.protocol import CreateEmbeddingResponse, Embedding
+
+
+class BaseEmbedding(ABC):
+    def embed(
+        self,
+        texts: Sequence[str],
+        model: Optional[str] = "bce",
+        encoding_format: Literal["float", "base64"] = "float",
+    ) -> CreateEmbeddingResponse:
+        ...
+
+
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
 class RAGEmbedding(BaseEmbedding):
     def __init__(
         self,
@@ -44,6 +60,7 @@ class RAGEmbedding(BaseEmbedding):
         encoding_format: Literal["float", "base64"] = "float",
         dimensions: Optional[int] = -1,
     ) -> CreateEmbeddingResponse:
+<<<<<<< HEAD
         dim = self.client.get_sentence_embedding_dimension()  # 获取句子嵌入的维度
         use_matryoshka = bool(0 < dimensions < dim)  # 检查是否需要使用 Matryoshka
 
@@ -86,4 +103,47 @@ class RAGEmbedding(BaseEmbedding):
             model=model,  # 使用的模型
             object="list",  # 返回对象类型为列表
             usage=Usage(prompt_tokens=total_tokens, total_tokens=total_tokens),  # 使用信息
+=======
+        dim = self.client.get_sentence_embedding_dimension()
+        use_matryoshka = bool(0 < dimensions < dim)
+
+        data, total_tokens = [], 0
+        batches = [texts[i: i + 1024] for i in range(0, len(texts), 1024)]
+        for num_batch, batch in enumerate(batches):
+            vecs = self.client.encode(
+                batch,
+                batch_size=int(os.getenv("batch_size", 32)),
+                normalize_embeddings=False if use_matryoshka else True,
+                convert_to_tensor=True if use_matryoshka else False,
+            )
+
+            bs = vecs.shape[0]
+            if dimensions > dim:
+                zeros = np.zeros((bs, dimensions - dim))
+                vecs = np.c_[vecs, zeros]
+            elif 0 < dimensions < dim:
+                vecs = vecs[..., :dimensions]  # Shrink the embedding dimensions
+                vecs = normalize_embeddings(vecs).cpu().numpy()
+
+            if encoding_format == "base64":
+                vecs = [base64.b64encode(v.tobytes()).decode("utf-8") for v in vecs]
+            else:
+                vecs = vecs.tolist()
+
+            data.extend(
+                Embedding(
+                    index=num_batch * 1024 + i,
+                    object="embedding",
+                    embedding=embedding,
+                )
+                for i, embedding in enumerate(vecs)
+            )
+            total_tokens += sum(len(i) for i in batch)
+
+        return CreateEmbeddingResponse(
+            data=data,
+            model=model,
+            object="list",
+            usage=Usage(prompt_tokens=total_tokens, total_tokens=total_tokens),
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
         )

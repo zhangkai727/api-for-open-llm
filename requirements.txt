@@ -19,6 +19,10 @@ starlette-context>=0.3.6,<0.4
 langchain>=0.1.16
 
 # for rag
+<<<<<<< HEAD
+=======
+langchain_community
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
 nltk
 rapidocr_onnxruntime
 unstructured[all-docs]

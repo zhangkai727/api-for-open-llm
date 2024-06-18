@@ -5,6 +5,7 @@ import os
 
 from langchain.llms import OpenAI
 
+<<<<<<< HEAD
 # 创建 OpenAI 实例，并设置相关参数
 llm = OpenAI(
     model_name="qwen",  # 模型名称为 "qwen"
@@ -19,6 +20,20 @@ llm = OpenAI(
 TOOL_DESC = """{name_for_model}: Call this tool to interact with the {name_for_human} API. What is the {name_for_human} API useful for? {description_for_model} Parameters: {parameters}"""
 
 # ReAct prompting 的 instruction 模板，用于包含插件的详细信息
+=======
+llm = OpenAI(
+    model_name="qwen",
+    temperature=0,
+    openai_api_base="http://192.168.0.53:7891/v1",
+    openai_api_key="xxx",
+)
+
+
+# 将一个插件的关键信息拼接成一段文本的模版。
+TOOL_DESC = """{name_for_model}: Call this tool to interact with the {name_for_human} API. What is the {name_for_human} API useful for? {description_for_model} Parameters: {parameters}"""
+
+# ReAct prompting 的 instruction 模版，将包含插件的详细信息。
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
 PROMPT_REACT = """Answer the following questions as best you can. You have access to the following tools:
 
 {tools_text}

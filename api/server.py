@@ -7,6 +7,7 @@ from api.models import (
 )
 
 
+<<<<<<< HEAD
 prefix = SETTINGS.api_prefix  # 获取配置中的API前缀
 
 if EMBEDDING_MODEL is not None:
@@ -50,10 +51,51 @@ if LLM_ENGINE is not None:
 
     app.include_router(chat_router, prefix=prefix, tags=["Chat Completion"])  # 将聊天路由包含到FastAPI应用中，并添加标签"Chat Completion"
     app.include_router(completion_router, prefix=prefix, tags=["Completion"])  # 将完成路由包含到FastAPI应用中，并添加标签"Completion"
+=======
+prefix = SETTINGS.api_prefix
+
+if EMBEDDING_MODEL is not None:
+    from api.routes.embedding import embedding_router
+
+    app.include_router(embedding_router, prefix=prefix, tags=["Embedding"])
+
+    try:
+        from api.routes.file import file_router
+
+        app.include_router(file_router, prefix=prefix, tags=["File"])
+    except ImportError:
+        pass
+
+if RERANK_MODEL is not None:
+    from api.routes.rerank import rerank_router
+
+    app.include_router(rerank_router, prefix=prefix, tags=["Rerank"])
+
+
+if LLM_ENGINE is not None:
+    from api.routes import model_router
+
+    app.include_router(model_router, prefix=prefix, tags=["Model"])
+
+    if SETTINGS.engine == "vllm":
+        from api.vllm_routes import chat_router as chat_router
+        from api.vllm_routes import completion_router as completion_router
+
+    else:
+        from api.routes.chat import chat_router as chat_router
+        from api.routes.completion import completion_router as completion_router
+
+    app.include_router(chat_router, prefix=prefix, tags=["Chat Completion"])
+    app.include_router(completion_router, prefix=prefix, tags=["Completion"])
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
 
 
 if __name__ == "__main__":
     import uvicorn
+<<<<<<< HEAD
 
     uvicorn.run(app, host=SETTINGS.host, port=SETTINGS.port, log_level="info")  # 运行FastAPI应用，指定主机、端口和日志级别为info
 
+=======
+    uvicorn.run(app, host=SETTINGS.host, port=SETTINGS.port, log_level="info")
+>>>>>>> d45db7c71cc1d7c6f454aab8dc32da6b0299ee3d
